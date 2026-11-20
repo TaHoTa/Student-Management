@@ -1,0 +1,9 @@
+{
+  "name": "Student Management · কোচিং ব্যবস্থাপনা",
+  "short_name": "কোচিং",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f3f5f7",
+  "theme_color": "#0f8b8d",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}
