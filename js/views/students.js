@@ -69,7 +69,7 @@ export function studentView(id) {
       ${f.dueAmt ? `<div class="info bad"><b>${t('due')}: ${tk(f.dueAmt)}</b><br>${f.over.map(e => eLabel(e)).join(', ')}</div>` : `<div class="info good">✓ ${f.paidUntil ? t('paidUntil') + ' ' + fd(f.paidUntil) : t('paid')}</div>`}
       <div class="bar" style="margin:12px 0 0">${can('payments') ? `<button class="btn pri" style="flex:1" data-act="pay" data-id="${s.id}">৳ ${t('qPay')}</button>` : ''}${f.dueAmt ? waBtn(s.guardian_phone || s.phone, remindText(s, f), '💬 ' + t('remind'), '') : ''}</div></div>
       <div class="card"><h3>${t('feeSchedule')}</h3>${sc.map(e => { const cl = e.paid >= e.amount ? 'ok' : e.due <= today() ? 'due' : 'soon'; return `<div class="row"><div class="grow"><b>${eLabel(e)}</b><div class="sm mut">${fd(e.due)}</div></div><div style="text-align:right"><b>${tk(e.amount)}</b><div><span class="pill ${cl}">${e.paid >= e.amount ? '✓ ' + t('paid') : e.paid > 0 ? tk(e.paid) + ' ' + t('paid') : e.due <= today() ? t('due') : t('dueSoon')}</span></div></div></div>`; }).join('')}</div>
-      <div class="card"><h3>${t('payHistory')}</h3>${pays.map(p => { const cv = (f.cov[p.id] || []).map(i => eLabel(f.sc[i])).join(', ') || t('advance'); return `<div class="row"><div class="grow"><b>${tk(p.amount)}</b> <span class="sm mut">· ${fd(p.paid_on)}</span><div class="sm mut">${t('covers')}: ${cv}</div></div>${waBtn(s.guardian_phone || s.phone, receiptText(s, p, cv), '🧾')}</div>`; }).join('') || empty('🪙', t('noPay'))}</div>`;
+      <div class="card"><h3>${t('payHistory')}</h3>${pays.map(p => { const cv = (f.cov[p.id] || []).map(i => eLabel(f.sc[i])).join(', ') || t('advance'); return `<div class="row"><div class="grow"><b>${tk(p.amount)}</b> <span class="sm mut">· ${fd(p.paid_on)}</span><div class="sm mut">${t('covers')}: ${cv}${p.note ? ' · ' + esc(p.note) : ''}</div></div>${waBtn(s.guardian_phone || s.phone, receiptText(s, p, cv), '🧾')}${isOwner() ? `<button class="btn sm" data-act="payEdit" data-id="${p.id}" aria-label="${t('editPayment')}">✎</button>` : ''}</div>`; }).join('') || empty('🪙', t('noPay'))}</div>`;
   } else {
     tab = `<div class="card">${exams.length ? exams.map(({ e, r, n }) => `<div class="row"><div class="grow"><div><span class="subj">${esc(S.data.subjects.find(x => x.id === e.subject_id)?.name || '')}</span><b>${esc(e.topic || '')}</b></div>
       <div class="sm mut">${esc(S.data.examTypes.find(x => x.id === e.exam_type_id)?.name || '')} · ${fd(e.held_on)}${r.ab ? '' : ` · ${t('rank')} ${num(r.rank)}/${num(n)}`}</div>
@@ -82,9 +82,31 @@ export function studentView(id) {
     <div style="margin-top:12px">${subs.map(x => `<div class="schedrow"><b>${esc(x.name)}</b><span>${subjSched(x) || '—'}</span></div>`).join('')}</div>
     <div class="trio"><div><b>${num(pct)}%</b><span>${t('attendance')}</span></div>${money ? `<div><b>${s.plan === 'monthly' ? (f.paidUntil ? fd(f.paidUntil) : '—') : f.dueAmt ? t('due') : '✓'}</b><span>${t('paidUntil')}</span></div>` : ''}<div><b>${avgP == null ? '—' : num(avgP) + '%'}</b><span>${t('avgMarks')}</span></div></div></div>
     <div class="card">${contact(t('phone'), s.phone)}${s.whatsapp ? `<div class="row"><div class="grow"><div class="sm mut">WhatsApp</div><b>${esc(num(s.whatsapp))}</b></div></div>` : ''}${contact(t('guardianPhone') + (s.guardian_name ? ' · ' + esc(s.guardian_name) : ''), s.guardian_phone)}
-      <div class="sm mut" style="margin-top:6px">${t('admit')}: ${fd(s.admit_date)}${s.school ? ' · ' + esc(s.school) : ''}</div>${s.note ? `<div class="sm mut">📝 ${esc(s.note)}</div>` : ''}</div></div>
+      <div class="sm mut" style="margin-top:6px">${t('admit')}: ${fd(s.admit_date)}${s.school ? ' · ' + esc(s.school) : ''}</div>${s.note ? `<div class="sm mut">📝 ${esc(s.note)}</div>` : ''}</div>${shareCard(s)}</div>
   <div><div class="tabs ${tabs.length === 2 ? 'two' : ''}">${tabs.map(([k, l]) => `<button class="${S.ui.ptab === k ? 'on' : ''}" data-act="ptab" data-v="${k}">${l}</button>`).join('')}</div>${tab}</div></div>`;
 }
+// ---------- guardian link (read-only page for student & guardian) ----------
+export const shareUrl = k => location.origin + location.pathname.replace(/[^/]*$/, '') + 'student.html?k=' + k;
+function shareCard(s) {
+  if (!can('students')) return '';
+  const top = `<div class="card"><h3>🔗 ${t('shareTitle')}</h3><p class="sm mut" style="margin-top:0">${t('shareHint')}</p>`;
+  if (!s.share_key) return top + `<button class="btn pri wide" data-act="shareCreate" data-id="${s.id}">${t('createLink')}</button></div>`;
+  const u = shareUrl(s.share_key);
+  return top + `<div class="linkbox"><code>${esc(u)}</code></div>
+    <div class="bar" style="margin:10px 0 0">${waBtn(s.guardian_phone || s.phone, t('msgShare', { c: S.centre.name, n: s.name, u }), '💬 ' + t('shareWa'), '')}
+    <button class="btn" data-act="shareCopy" data-id="${s.id}">${t('copy')}</button><a class="btn" href="${esc(u)}" target="_blank" rel="noopener">👁 ${t('preview')}</a></div>
+    <button class="btn ghost danger wide" data-act="shareReset" data-id="${s.id}">${t('resetLink')}</button></div>`;
+}
+async function shareKey(el, reset) {
+  busy(el, true);
+  const { data, error } = await S.sb.rpc('student_share_key', { p_student: el.dataset.id, p_reset: reset });
+  busy(el, false);
+  if (error) return toast(errText(error, t));
+  studentOf(el.dataset.id).share_key = data; toast(reset ? t('linkReset') : t('linkCreated')); keepScroll(S.render);
+}
+ACT.shareCreate = el => shareKey(el, false);
+ACT.shareReset = async el => { if (await ask(t('confirmResetLink'), t('resetLink'))) shareKey(el, true); };
+ACT.shareCopy = async el => { const u = shareUrl(studentOf(el.dataset.id).share_key); try { await navigator.clipboard.writeText(u); toast(t('copied')); } catch (e) { toast(u); } };
 ACT.ptab = el => { S.ui.ptab = el.dataset.v; keepScroll(S.render); };
 export const remindText = (s, f) => { const per = f.over.map(e => eLabel(e)).join(', '); return t('msgRemind', { c: S.centre.name, n: s.name, x: tk(f.dueAmt), p: per }); };
 export const receiptText = (s, p, cv) => t('msgReceipt', { c: S.centre.name, n: s.name, x: tk(p.amount), d: fd(p.paid_on), p: cv });

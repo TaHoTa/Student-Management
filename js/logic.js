@@ -5,26 +5,28 @@ import { today, addDays, addMonths, diffDays } from './dates.js';
 // ---------- fees ----------
 // Monthly: anniversary cycles (admitted 15 Jan → 15 Jan–14 Feb, 15 Feb–14 Mar …), due on the first day of each cycle.
 // Full course: one payment due on admission. Fee changes (fee_history) apply from their effective date.
-function feeAt(s, date) {
-  const h = S.data.feeHist.filter(x => x.student_id === s.id && x.effective_from <= date).sort((a, b) => (a.effective_from < b.effective_from ? -1 : 1));
+// Pure versions (also used by the public student page): s = student, endDate = batch end,
+// pays = this student's payments, hist = this student's fee_history rows.
+function feeAt(s, hist, date) {
+  const h = hist.filter(x => x.effective_from <= date).sort((a, b) => (a.effective_from < b.effective_from ? -1 : 1));
   return h.length ? Number(h[h.length - 1].fee) : Number(s.fee);
 }
-export function schedule(s) {
-  const b = batchOf(s.batch_id), T = today(), out = [];
+export function scheduleFor(s, endDate, hist) {
+  const T = today(), out = [];
   if (s.plan === 'monthly') {
     for (let k = 0; k < 120; k++) {
       const from = addMonths(s.admit_date, k);
-      if (b?.end_date && from > b.end_date) break;
+      if (endDate && from > endDate) break;
       if (s.status === 'left' && from > T) break;
-      out.push({ from, to: addDays(addMonths(s.admit_date, k + 1), -1), due: from, amount: feeAt(s, from) });
+      out.push({ from, to: addDays(addMonths(s.admit_date, k + 1), -1), due: from, amount: feeAt(s, hist, from) });
       if (from > T) break;
     }
   } else out.push({ full: true, due: s.admit_date, amount: Number(s.fee) });
   return out;
 }
-export function feeState(s) {
-  const T = today(), sc = schedule(s);
-  const pays = S.data.payments.filter(p => p.student_id === s.id).sort((a, b) => (a.paid_on < b.paid_on ? -1 : 1));
+export function feeStateFor(s, endDate, payments, hist) {
+  const T = today(), sc = scheduleFor(s, endDate, hist);
+  const pays = payments.slice().sort((a, b) => (a.paid_on < b.paid_on ? -1 : 1));
   let pool = pays.reduce((a, p) => a + Number(p.amount), 0); const totalPaid = pool;
   sc.forEach(e => { e.paid = Math.min(pool, e.amount); pool -= e.paid; });
   const cov = {}; let i = 0, left = sc[0] ? sc[0].amount : 0;
@@ -37,6 +39,9 @@ export function feeState(s) {
     lateDays: over.length ? diffDays(over[0].due, T) : 0,
     paidUntil: s.plan === 'monthly' && done.length ? done[done.length - 1].to : null };
 }
+// App versions (read from the loaded centre data)
+export const schedule = s => scheduleFor(s, batchOf(s.batch_id)?.end_date, S.data.feeHist.filter(h => h.student_id === s.id));
+export const feeState = s => feeStateFor(s, batchOf(s.batch_id)?.end_date, S.data.payments.filter(p => p.student_id === s.id), S.data.feeHist.filter(h => h.student_id === s.id));
 export const owe = f => (f.status === 'due' ? f.dueAmt : f.next ? f.next.amount - f.next.paid : 0);
 // suggested amount for n months (or what is due for a full-course student)
 export function suggestAmount(s, f, n) {
@@ -67,4 +72,10 @@ export function results(e) {
   const ok = rows.filter(r => !r.ab).sort((a, b) => b.tot - a.tot);
   ok.forEach(r => (r.rank = 1 + ok.filter(x => x.tot > r.tot).length));
   return { full, ok, rows: ok.concat(rows.filter(r => r.ab)) };
+}
+// grade one student's marks for one exam (used by the public student page)
+export function gradeOne(e, mcq, written) {
+  const full = examFull(e), m = e.has_mcq ? Number(mcq) || 0 : 0, w = e.has_written ? Number(written) || 0 : 0, tot = m + w, pct = full ? (tot * 100) / full : 0;
+  const failPart = (e.has_mcq && m < partPass(e.mcq_full, e.mcq_pass)) || (e.has_written && w < partPass(e.written_full, e.written_pass));
+  return { full, tot, pct, failPart, g: failPart ? 'F' : bdGrade(pct) };
 }

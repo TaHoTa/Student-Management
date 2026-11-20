@@ -39,6 +39,11 @@ const T = {
   qAttend: ['Take attendance', 'হাজিরা নিন'], qPay: ['Collect fee', 'টাকা জমা নিন'], qStudent: ['New student', 'নতুন শিক্ষার্থী'],
   todaySched: ["Today's classes", 'আজকের ক্লাস'], noClassToday: ['No class today', 'আজ কোনো ক্লাস নেই'], dueList: ['Fees pending', 'বেতন বাকি'], allClear: ['Everyone has paid. Great!', 'সবাই বেতন দিয়েছে। দারুণ!'],
   collect: ['Collect', 'জমা নিন'], startHere: ['Start here: create your first batch', 'এখান থেকে শুরু করুন: প্রথম ব্যাচ তৈরি করুন'],
+  // guardian link
+  shareTitle: ['Guardian link', 'অভিভাবকের লিংক'], shareHint: ['A private page where the student and guardian can see attendance, fees and exam results. No login needed.', 'একটি ব্যক্তিগত পেজ, যেখানে শিক্ষার্থী ও অভিভাবক হাজিরা, বেতন ও পরীক্ষার ফল দেখতে পারবে। লগইন লাগবে না।'],
+  createLink: ['Create link', 'লিংক তৈরি করুন'], shareWa: ['Send on WhatsApp', 'হোয়াটসঅ্যাপে পাঠান'], preview: ['Preview', 'দেখুন'], resetLink: ['Reset link', 'লিংক বদলান'],
+  confirmResetLink: ['The old link will stop working. Make a new one?', 'পুরোনো লিংক আর কাজ করবে না। নতুন লিংক বানাবেন?'], linkReset: ['New link made. Send it again.', 'নতুন লিংক তৈরি হয়েছে। আবার পাঠান।'], linkCreated: ['Link ready', 'লিংক তৈরি হয়েছে'],
+  msgShare: ['{c}: See {n}\'s attendance, fees and exam results here: {u}', '{c}: {n}-এর হাজিরা, বেতন ও পরীক্ষার ফলাফল এই লিংকে দেখুন: {u}'],
   // fees
   paid: ['Paid', 'পরিশোধিত'], due: ['Due', 'বাকি'], dueSoon: ['Due soon', 'শীঘ্রই'], daysLate: ['days late', 'দিন দেরি'], dueToday: ['due today', 'আজ দেয়ার দিন'],
   paidUntil: ['Paid until', 'পরিশোধিত'], nextDue: ['Next', 'পরবর্তী'], plan: ['Payment plan', 'পেমেন্ট পদ্ধতি'], monthly: ['Monthly', 'মাসিক'], fullCourse: ['Full course', 'পুরো কোর্স'],
@@ -50,6 +55,8 @@ const T = {
   msgRemind: ['Assalamu Alaikum. Reminder from {c}: {n}\'s fee of {x} ({p}) is due. Thank you.', 'আসসালামু আলাইকুম। {c} থেকে জানানো হচ্ছে: {n}-এর {p} এর বেতন {x} বাকি আছে। অনুগ্রহ করে পরিশোধ করুন। ধন্যবাদ।'],
   msgReceipt: ['{c}: Received {x} cash for {n} on {d}, for {p}. Thank you.', '{c}: {d} তারিখে {n}-এর {p} এর জন্য {x} নগদ গ্রহণ করা হয়েছে। ধন্যবাদ।'],
   msgAbsent: ['{c}: {n} was absent from {s} class on {d}.', '{c}: {n} আজ ({d}) {s} ক্লাসে অনুপস্থিত ছিল।'],
+  editPayment: ['Correct payment', 'পেমেন্ট সংশোধন'], editPaymentHint: ['Fix a wrong amount, date or student. Dues update automatically.', 'ভুল টাকা, তারিখ বা শিক্ষার্থী ঠিক করুন। বকেয়া নিজে থেকেই আপডেট হবে।'],
+  deletePayment: ['Delete payment', 'পেমেন্ট মুছুন'], confirmDelPayment: ['Delete this payment of {x} ({d})?', '{d} তারিখের {x} পেমেন্টটি মুছবেন?'], student: ['Student', 'শিক্ষার্থী'],
   // attendance
   present: ['Present', 'উপস্থিত'], absent: ['Absent', 'অনুপস্থিত'], classHeld: ['Class held', 'ক্লাস হয়েছে'], notTaken: ['Attendance not taken yet', 'হাজিরা এখনো নেওয়া হয়নি'],
   startClass: ['Class happened — start attendance', 'ক্লাস হয়েছে — হাজিরা শুরু করুন'], tapHint: ['Everyone starts present. Tap the absent ones.', 'সবাই উপস্থিত ধরা আছে। শুধু অনুপস্থিতদের চাপ দিন।'],

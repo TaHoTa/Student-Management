@@ -2,7 +2,7 @@
 import { S, can, canSee, isOwner, loadCentreData, batchOf, studentOf, myStudents, batchTitle, nameOf, must } from '../store.js';
 import { t, num, tk, fd, MONF } from '../i18n.js';
 import { today, addMonths } from '../dates.js';
-import { ACT, INP, esc, toast, sheet, closeSheet, head, busy, empty, av, pill, ring, waBtn, val, dateField, getDate, keepScroll, confetti, $ } from '../ui.js';
+import { ACT, INP, esc, toast, sheet, closeSheet, head, busy, empty, ask, av, pill, ring, waBtn, val, dateField, getDate, keepScroll, confetti, $ } from '../ui.js';
 import { feeState, owe, suggestAmount } from '../logic.js';
 import { errText } from '../db.js';
 
@@ -27,7 +27,7 @@ export function feesView() {
       ${f.status === 'due' ? waBtn(s.guardian_phone || s.phone, t('msgRemind', { c: S.centre.name, n: s.name, x: tk(f.dueAmt), p: f.over.map(eLabel).join(', ') }), '💬') : ''}
       ${can('payments') ? `<button class="btn sm" data-act="pay" data-id="${s.id}">${t('collect')}</button>` : ''}</div>`).join('') : empty('🎉', t('allClear'))}</div>
     <div class="card"><h3>${t('byBatch')}</h3>${Object.entries(g).sort((a, b) => b[1] - a[1]).map(([k, v]) => `<div style="margin:10px 0"><div class="bar" style="margin:0 0 4px"><span class="grow">${esc(k)}</span><b>${tk(v)}</b></div><div class="meter ac"><i style="width:${tot ? (v / tot) * 100 : 0}%"></i></div></div>`).join('') || empty('🪙', t('noPay'))}</div></div>
-  <div class="card"><h3>${t('payHistory')}</h3>${ps.length ? ps.map(p => { const s = studentOf(p.student_id); return s ? `<div class="row click" data-go="student-${s.id}">${av(s.name)}<div class="grow"><b>${esc(s.name)}</b><div class="sm mut">${fd(p.paid_on)}${nameOf(p.received_by) ? ' · ' + esc(nameOf(p.received_by)) : ''}${p.note ? ' · ' + esc(p.note) : ''}</div></div><b>${tk(p.amount)}</b></div>` : ''; }).join('') : empty('🪙', t('noPay'))}</div></div>`;
+  <div class="card"><h3>${t('payHistory')}</h3>${ps.length ? ps.map(p => { const s = studentOf(p.student_id); return s ? `<div class="row click" data-go="student-${s.id}">${av(s.name)}<div class="grow"><b>${esc(s.name)}</b><div class="sm mut">${fd(p.paid_on)}${nameOf(p.received_by) ? ' · ' + esc(nameOf(p.received_by)) : ''}${p.note ? ' · ' + esc(p.note) : ''}</div></div><b>${tk(p.amount)}</b>${isOwner() ? `<button class="btn sm" data-act="payEdit" data-id="${p.id}" aria-label="${t('editPayment')}">✎</button>` : ''}</div>` : ''; }).join('') : empty('🪙', t('noPay'))}</div></div>`;
 }
 ACT.fmNav = el => { S.ui.fm = addMonths(S.ui.fm + '-01', +el.dataset.d).slice(0, 7); keepScroll(S.render); };
 
@@ -80,4 +80,37 @@ ACT.payUndo = async el => {
   busy(el, true);
   try { await must(S.sb.from('payments').delete().eq('id', Pay.pid)); S.data.payments = S.data.payments.filter(x => x.id !== Pay.pid); closeSheet(); keepScroll(S.render); toast(t('undone')); }
   catch (e) { busy(el, false); toast(errText(e, t)); }
+};
+
+// ---------- correct a wrong payment (owner only; the database also enforces this) ----------
+ACT.payEdit = el => {
+  const p = S.data.payments.find(x => x.id === el.dataset.id); if (!p) return;
+  const studs = S.data.students.slice().sort((a, b) => a.name.localeCompare(b.name));
+  sheet(head(t('editPayment')) + `<p class="sm mut" style="margin:0">${t('editPaymentHint')}</p>
+    <label>${t('student')}<select id="peStudent">${studs.map(s => `<option value="${s.id}" ${s.id === p.student_id ? 'selected' : ''}>${esc(s.name)}${batchOf(s.batch_id)?.label ? ' · ' + esc(batchOf(s.batch_id).label) : ''}</option>`).join('')}</select></label>
+    <div class="lab">৳ ${t('amount')}</div><div class="amtbox"><span>৳</span><input id="peAmt" type="number" inputmode="numeric" value="${Number(p.amount)}" aria-label="${t('amount')}"></div>
+    ${dateField('peDate', t('date'), p.paid_on)}
+    <label>${t('note')}<input id="peNote" value="${esc(p.note || '')}" placeholder="${t('optional')}"></label>
+    <button class="btn pri wide huge" data-act="payUpdate" data-id="${p.id}">✓ ${t('save')}</button>
+    <button class="btn ghost danger wide" data-act="payDelete" data-id="${p.id}">${t('deletePayment')}</button>`);
+};
+ACT.payUpdate = async el => {
+  const amt = Number(val('peAmt')); if (!(amt > 0)) return toast(t('needAmount'));
+  const row = { student_id: val('peStudent'), amount: amt, paid_on: getDate('peDate') || today(), note: val('peNote').trim() || null };
+  busy(el, true);
+  try {
+    await must(S.sb.from('payments').update(row).eq('id', el.dataset.id));
+    Object.assign(S.data.payments.find(x => x.id === el.dataset.id), row);
+    closeSheet(); keepScroll(S.render); toast(t('saved'));
+  } catch (e) { busy(el, false); toast(errText(e, t)); }
+};
+ACT.payDelete = async el => {
+  const p = S.data.payments.find(x => x.id === el.dataset.id); if (!p) return;
+  if (!(await ask(t('confirmDelPayment', { x: tk(p.amount), d: fd(p.paid_on) }), t('deletePayment')))) return;
+  busy(el, true);
+  try {
+    await must(S.sb.from('payments').delete().eq('id', p.id));
+    S.data.payments = S.data.payments.filter(x => x.id !== p.id);
+    closeSheet(); keepScroll(S.render); toast(t('undone'));
+  } catch (e) { busy(el, false); toast(errText(e, t)); }
 };
